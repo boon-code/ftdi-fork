@@ -81,6 +81,7 @@ impl Target for UsbProperties {
 pub struct Opener<T: Target> {
     target: T,
     interface: Option<Interface>,
+    auto_detach: bool,
 }
 
 impl<T: Target> Opener<T> {
@@ -88,12 +89,18 @@ impl<T: Target> Opener<T> {
         Self {
             target,
             interface: None,
+            auto_detach: false,
         }
     }
 
     pub fn interface(mut self, interface: Interface) -> Self {
         assert!(self.interface.is_none(), "interface already set");
         self.interface = Some(interface);
+        self
+    }
+
+    pub fn set_auto_detach(mut self) -> Self {
+        self.auto_detach = true;
         self
     }
 
@@ -113,6 +120,10 @@ impl<T: Target> Opener<T> {
                 -3 => unreachable!("device already opened in Builder"),
                 _ => Err(Error::unknown(context)),
             }?;
+        }
+
+        if self.auto_detach {
+            unsafe { (*context).module_detach_mode = ffi::ftdi_module_detach_mode::AUTO_DETACH_REATACH_SIO_MODULE };
         }
 
         self.target.open_in_context(context)?;
