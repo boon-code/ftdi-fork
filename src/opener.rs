@@ -78,10 +78,25 @@ impl Target for UsbProperties {
     }
 }
 
+pub enum DetachMode {
+    AutoDetach,
+    DontDetach,
+    AutoDetachReatach,
+}
+impl From<DetachMode> for ffi::ftdi_module_detach_mode {
+    fn from(value: DetachMode) -> Self {
+        match value {
+            DetachMode::AutoDetach => ffi::ftdi_module_detach_mode::AUTO_DETACH_SIO_MODULE,
+            DetachMode::DontDetach => ffi::ftdi_module_detach_mode::DONT_DETACH_SIO_MODULE,
+            DetachMode::AutoDetachReatach => ffi::ftdi_module_detach_mode::AUTO_DETACH_REATACH_SIO_MODULE,
+        }
+    }
+}
+
 pub struct Opener<T: Target> {
     target: T,
     interface: Option<Interface>,
-    auto_detach: bool,
+    detach_mode: DetachMode,
 }
 
 impl<T: Target> Opener<T> {
@@ -89,7 +104,7 @@ impl<T: Target> Opener<T> {
         Self {
             target,
             interface: None,
-            auto_detach: false,
+            detach_mode: DetachMode::AutoDetach,
         }
     }
 
@@ -99,8 +114,8 @@ impl<T: Target> Opener<T> {
         self
     }
 
-    pub fn set_auto_detach(mut self) -> Self {
-        self.auto_detach = true;
+    pub fn set_detach_mode(mut self, detach_mode: DetachMode) -> Self {
+        self.detach_mode = detach_mode;
         self
     }
 
@@ -122,9 +137,7 @@ impl<T: Target> Opener<T> {
             }?;
         }
 
-        if self.auto_detach {
-            unsafe { (*context).module_detach_mode = ffi::ftdi_module_detach_mode::AUTO_DETACH_REATACH_SIO_MODULE };
-        }
+        unsafe { (*context).module_detach_mode = self.detach_mode.into() };
 
         self.target.open_in_context(context)?;
 

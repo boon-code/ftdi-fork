@@ -18,7 +18,7 @@ mod opener;
 pub use error::{Error, Result};
 #[cfg(feature = "libusb1-sys")]
 pub use opener::find_by_raw_libusb_device;
-pub use opener::{find_by_bus_address, find_by_vid_pid, Opener};
+pub use opener::{find_by_bus_address, find_by_vid_pid, Opener, DetachMode};
 
 use error::libftdi_to_io;
 use error::libusb_to_io;
